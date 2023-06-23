@@ -4,7 +4,7 @@ Example
 
 ![ezgif-5-8835f4da8d](https://github.com/JMarkin/nvim-tree.lua-float-preview/assets/15740814/e33aef5e-f647-435f-bb23-cee297011757)
 
-This plugin created for to use feature before this [PR](https://github.com/nvim-tree/nvim-tree.lua/pull/2290) 
+This plugin created for to use feature before this [PR](https://github.com/nvim-tree/nvim-tree.lua/pull/2290)
 
 ## How to add
 1. Install plugin
@@ -24,7 +24,7 @@ lazy example
    ```lua
    local function on_attach(bufnr)
     local api = require("nvim-tree.api")
-    local FloatPreview = require("nvim-tree.float-preview")
+    local FloatPreview = require("float-preview")
 
     local prev, float_close_wrap = FloatPreview:new()
     prev:attach(bufnr)
