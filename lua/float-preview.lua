@@ -63,6 +63,7 @@ function FloatPreview:close()
   end
 end
 
+--TODO: add bat preview
 function FloatPreview:preview(path)
   self.path = path
   self.buf = vim.api.nvim_create_buf(false, true)
