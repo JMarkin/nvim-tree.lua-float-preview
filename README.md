@@ -49,7 +49,8 @@ local function on_attach(bufnr)
 end
 ```
 
---
+---
+
 If you want disable diagnostic, and other in preview buffer. You can use `require("float-preview").is_float`, example for null-ls
 ```lua
 require("null-ls").setup({
