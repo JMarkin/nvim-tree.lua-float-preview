@@ -1,22 +1,34 @@
-local get_node = require("nvim-tree.lib").get_node_at_cursor
+local CFG = require "float-preview.config"
+
+local get_node = require("nvim-tree.api").tree.get_node_under_cursor
 local FloatPreview = {}
 FloatPreview.__index = FloatPreview
 
 local preview_au = "float_preview_au"
 vim.api.nvim_create_augroup(preview_au, { clear = true })
 
+local all_floats = {}
+
+function FloatPreview.is_float(bufnr, path)
+  if path then
+    return all_floats[path] ~= nil
+  end
+  if not bufnr then
+    bufnr = vim.api.nvim_get_current_buf()
+  end
+
+  return all_floats[bufnr] ~= nil
+end
+
+function FloatPreview.setup(cfg)
+  CFG.update(cfg)
+end
+
 function FloatPreview:new(cfg)
   local prev = {}
   setmetatable(prev, FloatPreview)
 
-  cfg = cfg or {
-    scroll_lines = 20,
-    mapping = {
-      down = { "<C-d>" },
-      up = { "<C-e>", "<C-u>" }
-    }
-  }
-
+  cfg = cfg or CFG.config()
   prev.buf = nil
   prev.win = nil
   prev.path = nil
@@ -42,6 +54,8 @@ function FloatPreview:close()
     pcall(vim.api.nvim_win_close, self.win, { force = true })
     pcall(vim.api.nvim_buf_delete, self.buf, { force = true })
     self.win = nil
+    all_floats[self.buf] = nil
+    all_floats[self.path] = nil
     self.buf = nil
     self.path = nil
     self.current_line = 1
@@ -49,22 +63,25 @@ function FloatPreview:close()
   end
 end
 
+--TODO: add bat preview
 function FloatPreview:preview(path)
   self.path = path
   self.buf = vim.api.nvim_create_buf(false, true)
-
+  all_floats[self.buf] = 1
+  all_floats[self.path] = 1
   vim.api.nvim_buf_set_option(self.buf, "bufhidden", "wipe")
   vim.api.nvim_buf_set_option(self.buf, "readonly", true)
 
-  local width = vim.api.nvim_get_option("columns")
-  local height = vim.api.nvim_get_option("lines")
+  local width = vim.api.nvim_get_option "columns"
+  local height = vim.api.nvim_get_option "lines"
   local prev_height = math.ceil(height / 2)
   local opts = {
+    -- TODO: add minimal variant
     -- style = "minimal",
     relative = "win",
     width = math.ceil(width / 2),
     height = prev_height,
-    row = vim.fn.line("."),
+    row = vim.fn.line ".",
     col = vim.fn.winwidth(0) + 1,
     border = "rounded",
     focusable = false,
@@ -73,14 +90,19 @@ function FloatPreview:preview(path)
 
   self.win = vim.api.nvim_open_win(self.buf, true, opts)
   local cmd = string.format("edit %s", vim.fn.fnameescape(self.path))
-  vim.api.nvim_command(cmd)
-  self.max_line = vim.fn.line("$")
-
-  local ok, out = pcall(vim.filetype.match, { buf = self.buf, filename = self.path })
+  local ok, _ = pcall(vim.api.nvim_command, cmd)
+  if not ok then
+    self:close()
+    return
+  end
+  self.max_line = vim.fn.line "$"
+  local out
+  ok, out = pcall(vim.filetype.match, { buf = self.buf, filename = self.path })
   if ok and out then
     cmd = string.format("set filetype=%s", out)
     pcall(vim.api.nvim_command, cmd)
   end
+  vim.api.nvim_set_option_value("winhl", "NormalFloat:Normal,FloatBorder:none", { win = self.win })
 end
 
 function FloatPreview:preview_under_cursor()
@@ -137,17 +159,24 @@ end
 
 function FloatPreview:attach(bufnr)
   for _, key in ipairs(self.cfg.mapping.up) do
-    vim.keymap.set("n", key, function() self:scroll_up() end, { buffer = bufnr })
+    vim.keymap.set("n", key, function()
+      self:scroll_up()
+    end, { buffer = bufnr })
   end
 
   for _, key in ipairs(self.cfg.mapping.down) do
-    vim.keymap.set("n", key, function() self:scroll_down() end, { buffer = bufnr })
+    vim.keymap.set("n", key, function()
+      self:scroll_down()
+    end, { buffer = bufnr })
   end
 
   vim.api.nvim_create_autocmd({ "User CloseNvimFloatPreview" }, {
-    callback = function() self:close() end,
+    callback = function()
+      self:close()
+    end,
     group = preview_au,
   })
+
   vim.api.nvim_create_autocmd({ "CursorHold" }, {
     buffer = bufnr,
     group = preview_au,
@@ -158,4 +187,3 @@ function FloatPreview:attach(bufnr)
 end
 
 return FloatPreview
-
