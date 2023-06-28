@@ -7,21 +7,57 @@ FloatPreview.__index = FloatPreview
 local preview_au = "float_preview_au"
 vim.api.nvim_create_augroup(preview_au, { clear = true })
 
+local st = {}
 local all_floats = {}
+local disabled = false
 
 function FloatPreview.is_float(bufnr, path)
   if path then
-    return all_floats[path] ~= nil
+    return st[path] ~= nil
   end
   if not bufnr then
     bufnr = vim.api.nvim_get_current_buf()
   end
 
-  return all_floats[bufnr] ~= nil
+  return st[bufnr] ~= nil
+end
+
+local function all_close()
+  for _, fl in pairs(all_floats) do
+    fl:close(false)
+  end
+end
+
+local function all_open()
+  for _, fl in pairs(all_floats) do
+    fl:preview_under_cursor()
+  end
 end
 
 function FloatPreview.setup(cfg)
   CFG.update(cfg)
+end
+
+function FloatPreview.attach_nvimtree(bufnr)
+  local prev = FloatPreview:new()
+  prev:attach(bufnr)
+  return prev
+end
+
+function FloatPreview.close_wrap(f)
+  return function(...)
+    all_close()
+    return f(...)
+  end
+end
+
+function FloatPreview.toggle()
+  disabled = not disabled
+  if disabled then
+    all_close()
+  else
+    all_open()
+  end
 end
 
 function FloatPreview:new(cfg)
@@ -40,9 +76,7 @@ function FloatPreview:new(cfg)
   local function action_wrap(f)
     return function(...)
       prev:close()
-      local r = f(...)
-      prev:preview_under_cursor()
-      return r
+      return f(...)
     end
   end
 
@@ -54,8 +88,8 @@ function FloatPreview:close()
     pcall(vim.api.nvim_win_close, self.win, { force = true })
     pcall(vim.api.nvim_buf_delete, self.buf, { force = true })
     self.win = nil
-    all_floats[self.buf] = nil
-    all_floats[self.path] = nil
+    st[self.buf] = nil
+    st[self.path] = nil
     self.buf = nil
     self.path = nil
     self.current_line = 1
@@ -65,10 +99,14 @@ end
 
 --TODO: add bat preview
 function FloatPreview:preview(path)
+  if disabled then
+    return
+  end
+
   self.path = path
   self.buf = vim.api.nvim_create_buf(false, true)
-  all_floats[self.buf] = 1
-  all_floats[self.path] = 1
+  st[self.path] = 1
+  st[self.buf] = 1
   vim.api.nvim_buf_set_option(self.buf, "bufhidden", "wipe")
   vim.api.nvim_buf_set_option(self.buf, "readonly", true)
 
@@ -170,20 +208,40 @@ function FloatPreview:attach(bufnr)
     end, { buffer = bufnr })
   end
 
-  vim.api.nvim_create_autocmd({ "User CloseNvimFloatPreview" }, {
+  for _, key in ipairs(self.cfg.mapping.toggle) do
+    vim.keymap.set("n", key, function()
+      FloatPreview.toggle()
+    end, { buffer = bufnr })
+  end
+
+  local au = vim.api.nvim_create_autocmd({ "User CloseNvimFloatPreview" }, {
     callback = function()
       self:close()
     end,
     group = preview_au,
   })
 
-  vim.api.nvim_create_autocmd({ "CursorHold" }, {
+  local au2 = vim.api.nvim_create_autocmd({ "CursorHold" }, {
     buffer = bufnr,
     group = preview_au,
     callback = function()
       self:preview_under_cursor()
     end,
   })
+
+  vim.api.nvim_create_autocmd({ "BufWipeout" }, {
+    buffer = bufnr,
+    group = preview_au,
+    callback = function()
+      self:close()
+      all_floats[bufnr] = nil
+      vim.api.nvim_del_autocmd(au)
+      vim.api.nvim_del_autocmd(au2)
+      self = nil
+    end,
+  })
+
+  all_floats[bufnr] = self
 end
 
 return FloatPreview

@@ -15,10 +15,15 @@ lazy example
             "JMarkin/nvim-tree.lua-float-preview",
             lazy = true,
             opts = {
-                scroll_lines = 20, -- lines for scroll
+                -- lines for scroll
+                scroll_lines = 20,
                 mapping = {
-                  down = { "<C-d>" },
-                  up = { "<C-e>", "<C-u>" },
+                    -- scroll down float buffer
+                    down = { "<C-d>" },
+                    -- scroll up float buffer
+                    up = { "<C-e>", "<C-u>" },
+                    -- enable/disable float windows
+                    toggle = {"<C-x>"}
                 },
             },
         },
@@ -31,8 +36,9 @@ local function on_attach(bufnr)
     local api = require("nvim-tree.api")
     local FloatPreview = require("float-preview")
 
-    local prev, float_close_wrap = FloatPreview:new()
-    prev:attach(bufnr)
+    FloatPreview.attach_nvimtree(bufnr)
+    local float_close_wrap = FloatPreview.close_wrap
+
     --- There are keymaps must to wrap for correct work
     -- ...
     vim.keymap.set("n", "<C-t>", float_close_wrap(api.node.open.tab), opts("Open: New Tab"))
