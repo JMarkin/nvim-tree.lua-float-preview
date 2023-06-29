@@ -24,7 +24,7 @@ end
 
 local function all_close()
   for _, fl in pairs(all_floats) do
-    fl:close(false)
+    fl:close()
   end
 end
 
@@ -125,7 +125,6 @@ function FloatPreview:preview(path)
     focusable = false,
     noautocmd = true,
   }
-
   self.win = vim.api.nvim_open_win(self.buf, true, opts)
   local cmd = string.format("edit %s", vim.fn.fnameescape(self.path))
   local ok, _ = pcall(vim.api.nvim_command, cmd)
@@ -146,12 +145,6 @@ end
 function FloatPreview:preview_under_cursor()
   local _, node = pcall(get_node)
   if not node then
-    self:close()
-    return
-  end
-
-  if not node.absolute_path then
-    self:close()
     return
   end
 
@@ -159,6 +152,7 @@ function FloatPreview:preview_under_cursor()
     return
   end
   self:close()
+
   if node.type ~= "file" then
     return
   end
@@ -213,21 +207,30 @@ function FloatPreview:attach(bufnr)
       FloatPreview.toggle()
     end, { buffer = bufnr })
   end
+  local au = {}
+  table.insert(
+    au,
+    vim.api.nvim_create_autocmd({ "User CloseNvimFloatPreview" }, {
+      callback = function()
+        self:close()
+      end,
+      group = preview_au,
+    })
+  )
 
-  local au = vim.api.nvim_create_autocmd({ "User CloseNvimFloatPreview" }, {
-    callback = function()
-      self:close()
-    end,
-    group = preview_au,
-  })
-
-  local au2 = vim.api.nvim_create_autocmd({ "CursorHold" }, {
-    buffer = bufnr,
-    group = preview_au,
-    callback = function()
-      self:preview_under_cursor()
-    end,
-  })
+  table.insert(
+    au,
+    vim.api.nvim_create_autocmd({ "CursorHold" }, {
+      group = preview_au,
+      callback = function()
+        if bufnr == vim.api.nvim_get_current_buf() then
+          self:preview_under_cursor()
+        else
+          self:close()
+        end
+      end,
+    })
+  )
 
   vim.api.nvim_create_autocmd({ "BufWipeout" }, {
     buffer = bufnr,
@@ -235,8 +238,9 @@ function FloatPreview:attach(bufnr)
     callback = function()
       self:close()
       all_floats[bufnr] = nil
-      vim.api.nvim_del_autocmd(au)
-      vim.api.nvim_del_autocmd(au2)
+      for _, au_id in pairs(au) do
+        vim.api.nvim_del_autocmd(au_id)
+      end
       self = nil
     end,
   })
