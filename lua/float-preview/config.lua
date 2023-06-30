@@ -1,9 +1,14 @@
 local CFG = {
   _cfg = {
+    -- lines for scroll
     scroll_lines = 20,
     mapping = {
+      -- scroll down float buffer
       down = { "<C-d>" },
+      -- scroll up float buffer
       up = { "<C-e>", "<C-u>" },
+      -- enable/disable float windows
+      toggle = {"<C-x>"}
     },
   },
 }
