@@ -85,8 +85,11 @@ end
 
 function FloatPreview:close()
   if self.path ~= nil then
+    local save_ei = vim.o.eventignore
+    vim.o.eventignore = "all"
     pcall(vim.api.nvim_win_close, self.win, { force = true })
     pcall(vim.api.nvim_buf_delete, self.buf, { force = true })
+    vim.o.eventignore = save_ei
     self.win = nil
     st[self.buf] = nil
     st[self.path] = nil
@@ -107,6 +110,14 @@ function FloatPreview:preview(path)
   self.buf = vim.api.nvim_create_buf(false, true)
   st[self.path] = 1
   st[self.buf] = 1
+
+  local o = vim.opt_local
+  o.bufhidden = "wipe"
+  o.writebackup = false
+  o.buflisted = false
+  o.buftype = "nowrite"
+  o.updatetime = 300
+
   vim.api.nvim_buf_set_option(self.buf, "bufhidden", "wipe")
   vim.api.nvim_buf_set_option(self.buf, "readonly", true)
 
@@ -125,9 +136,19 @@ function FloatPreview:preview(path)
     focusable = false,
     noautocmd = true,
   }
+
   self.win = vim.api.nvim_open_win(self.buf, true, opts)
+
+  local save_ei = vim.o.eventignore
+  vim.o.eventignore = "all"
+  vim.o.swapfile = false
+  local mess = vim.o.shortmess
+  vim.o.shortmess = "AF"
   local cmd = string.format("edit %s", vim.fn.fnameescape(self.path))
   local ok, _ = pcall(vim.api.nvim_command, cmd)
+  vim.o.swapfile = true
+  vim.o.shortmess = mess
+  vim.o.eventignore = save_ei
   if not ok then
     self:close()
     return
