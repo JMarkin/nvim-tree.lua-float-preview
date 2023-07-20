@@ -83,8 +83,11 @@ function FloatPreview:new(cfg)
   return prev, action_wrap
 end
 
-function FloatPreview:close()
-  if self.path ~= nil then
+function FloatPreview:close(reason)
+  if self.path ~= nil and self.buf ~= nil then
+    if reason then
+      -- vim.notify(string.format("close rason %s", reason))
+    end
     local save_ei = vim.o.eventignore
     vim.o.eventignore = "all"
     pcall(vim.api.nvim_win_close, self.win, { force = true })
@@ -103,6 +106,10 @@ end
 --TODO: add bat preview
 function FloatPreview:preview(path)
   if disabled then
+    return
+  end
+
+  if not self.cfg.hooks.pre_open(path) then
     return
   end
 
@@ -150,7 +157,7 @@ function FloatPreview:preview(path)
   vim.o.shortmess = mess
   vim.o.eventignore = save_ei
   if not ok then
-    self:close()
+    self:close "cant edit"
     return
   end
   self.max_line = vim.fn.line "$"
@@ -161,6 +168,9 @@ function FloatPreview:preview(path)
     pcall(vim.api.nvim_command, cmd)
   end
   vim.api.nvim_set_option_value("winhl", "NormalFloat:Normal,FloatBorder:none", { win = self.win })
+  if not self.cfg.hooks.post_open(self.buf) then
+    self:close "post open"
+  end
 end
 
 function FloatPreview:preview_under_cursor()
@@ -172,7 +182,7 @@ function FloatPreview:preview_under_cursor()
   if node.absolute_path == self.path then
     return
   end
-  self:close()
+  self:close "change file"
 
   if node.type ~= "file" then
     return
@@ -183,7 +193,7 @@ function FloatPreview:preview_under_cursor()
 
   local ok, _ = pcall(vim.api.nvim_set_current_win, win)
   if not ok then
-    self:close()
+    self:close "cant set win"
   end
 end
 
@@ -229,15 +239,6 @@ function FloatPreview:attach(bufnr)
     end, { buffer = bufnr })
   end
   local au = {}
-  table.insert(
-    au,
-    vim.api.nvim_create_autocmd({ "User CloseNvimFloatPreview" }, {
-      callback = function()
-        self:close()
-      end,
-      group = preview_au,
-    })
-  )
 
   table.insert(
     au,
@@ -247,7 +248,7 @@ function FloatPreview:attach(bufnr)
         if bufnr == vim.api.nvim_get_current_buf() then
           self:preview_under_cursor()
         else
-          self:close()
+          self:close "changed buffer"
         end
       end,
     })
@@ -257,7 +258,7 @@ function FloatPreview:attach(bufnr)
     buffer = bufnr,
     group = preview_au,
     callback = function()
-      self:close()
+      self:close "wipe"
       all_floats[bufnr] = nil
       for _, au_id in pairs(au) do
         vim.api.nvim_del_autocmd(au_id)

@@ -8,7 +8,17 @@ local CFG = {
       -- scroll up float buffer
       up = { "<C-e>", "<C-u>" },
       -- enable/disable float windows
-      toggle = {"<C-x>"}
+      toggle = { "<C-x>" },
+    },
+    -- hooks if return false preview doesn't shown
+    hooks = {
+      pre_open = function(path)
+        -- if file > 5 MB not preview
+        return require("float-preview.utils").get_size(path) < 5
+      end,
+      post_open = function(bufnr)
+        return true
+      end,
     },
   },
 }
