@@ -39,6 +39,16 @@ with defaults: >
             -- enable/disable float windows
             toggle = {"<C-x>"}
         },
+        -- hooks if return false preview doesn't shown
+        hooks = {
+          pre_open = function(path)
+            -- if file > 5 MB not preview
+            return require("float-preview.utils").get_buf_size(path) < 5
+          end,
+          post_open = function(bufnr)
+            return true
+          end,
+        },
     })
 <
 *float-preview.scroll_lines*
@@ -60,6 +70,25 @@ Mapping for manipulate float window if focus on nvim-tree.
   Enable/disable float window
   Type: `table`, Default: `{ "<C-x>" }`
 
+*float-preview.hooks*
+Hooks for float window.
+
+  *float-preview.hooks.pre_open*
+  Pre open hook. `path` argument.
+  Type: `function`, Default: >
+  function(path)
+    -- if file > 5 MB not preview
+    return require("float-preview.utils").get_size(path) < 5
+  end
+<
+
+  *float-preview.hooks.post_open*
+  Post open hook. `bufnr` argument.
+  Type: `function`, Default: >
+  post_open = function(bufnr)
+    return true
+  end
+<
 
 ==============================================================================
  3. MAPPINGS                                          *float-preview-mappings*
