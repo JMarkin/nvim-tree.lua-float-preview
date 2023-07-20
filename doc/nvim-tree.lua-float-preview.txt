@@ -1,0 +1,152 @@
+*nvim-tree.lua-float-preview* Float Preview for |nvim-tree.lua|
+
+Author: JMarkin
+
+==============================================================================
+CONTENTS                                                       *float-preview*
+
+  1. Introduction                             |float-preview-introduction|
+  2. Setup/Configuration                      |float-preview-setup|
+  3. Mappings                                 |float-preview-mappings|
+  4. API                                      |float-preview-api|
+  5. Prevent actions                          |float-preview-prevent-actions|
+
+==============================================================================
+ 1. INTRODUCTION                                  *float-preview-introduction*
+
+|nvim-tree.lua| operations may be enhanced to show a floating preview window
+in addition to their normal functionality.
+
+The floating window may be customised.
+
+==============================================================================
+ 2. SETUP                                                *float-preview-setup*
+
+You may optionally run setup function once at neovim startup to apply your
+configuration.
+
+Additional setup calls may be made to update the configuration. See example
+with defaults: >
+
+  require("float-preview").setup({
+        -- lines for scroll
+        scroll_lines = 20,
+        mapping = {
+            -- scroll down float buffer
+            down = { "<C-d>" },
+            -- scroll up float buffer
+            up = { "<C-e>", "<C-u>" },
+            -- enable/disable float windows
+            toggle = {"<C-x>"}
+        },
+    })
+<
+*float-preview.scroll_lines*
+Maximum number of lines the preview window will scroll vertically.
+Type: `number`, Default: `20`
+
+*float-preview.mapping*
+Mapping for manipulate float window if focus on nvim-tree.
+
+  *float-preview.mapping.down*
+  Scroll the flaot window down.
+  Type: `table`, Default: `{ "<C-d>", }`
+
+  *float-preview.mapping.up*
+  Scroll the flaot window up.
+  Type: `table`, Default: `{ "<C-e>", "<C-u>", }`
+
+  *float-preview.mapping.toggle*
+  Enable/disable float window
+  Type: `table`, Default: `{ "<C-x>" }`
+
+
+==============================================================================
+ 3. MAPPINGS                                          *float-preview-mappings*
+
+|nvim-tree| buffer mappings are needed to activate functionality. These take
+the form of a wrapper around |nvim-tree-api| calls in your |nvim-tree.on_attach|
+function. See |nvim-tree-mappings| for more details.
+
+Common functions to wrap may include:
+- |nvim-tree-api.node| for opening and previewing nodes
+- |nvim-tree-api.tree| to handle tree open/close
+- |nvim-tree-api.fs| for file creation
+
+The float preview is then attached to the nvim-tree buffer: >
+  require("float-preview").attach_nvimtree(bufnr)
+<
+The `close_wrap` function is then used to wrap |nvim-tree-api calls e.g.: >
+  require("float-preview").close_wrap(api.node.open.edit)
+<
+Full example |nvim-tree.on_attach|: >
+  local function my_on_attach(bufnr)
+    local api = require("nvim-tree.api")
+    local FloatPreview = require("float-preview")
+
+    FloatPreview.attach_nvimtree(bufnr)
+    local float_close_wrap = FloatPreview.close_wrap
+
+    --- There are keymaps must to wrap for correct work
+    -- ...
+    vim.keymap.set("n", "<C-t>", float_close_wrap(api.node.open.tab), opts("Open: New Tab"))
+    vim.keymap.set("n", "<C-v>", float_close_wrap(api.node.open.vertical), opts("Open: Vertical Split"))
+    vim.keymap.set("n", "<C-s>", float_close_wrap(api.node.open.horizontal), opts("Open: Horizontal Split"))
+    vim.keymap.set("n", "<CR>", float_close_wrap(api.node.open.edit), opts("Open"))
+    vim.keymap.set("n", "<Tab>", float_close_wrap(api.node.open.preview), opts("Open"))
+    vim.keymap.set("n", "o", float_close_wrap(api.node.open.edit), opts("Open"))
+    vim.keymap.set("n", "O", float_close_wrap(api.node.open.no_window_picker), opts("Open: No Window Picker"))
+    vim.keymap.set("n", "q", float_close_wrap(api.tree.close), opts("Close"))
+    vim.keymap.set("n", "a", float_close_wrap(api.fs.create), opts("Create"))
+    vim.keymap.set("n", "d", float_close_wrap(api.fs.remove), opts("Delete"))
+    vim.keymap.set("n", "r", float_close_wrap(api.fs.rename), opts("Rename"))
+  end
+<
+Do not forget to set `my_on_attach` in |nvim-tree-setup| e.g. >
+  require("nvim-tree").setup {
+    ---
+    on_attach = my_on_attach,
+    ---
+  }
+<
+==============================================================================
+ 4. API                                                    *float-preview-api*
+
+is_float({bufnr})                                *float-preview-api.is_float()*
+    Detect if buffer is own float nvim-tree window. Useful for prevent
+    actions, diagnostics, attach lsp, etc
+
+    Parameters: ~
+      • {bufnr} (number|nil) buffer handle, 0 or nil for current buffer
+
+    Return: ~
+      (boolean) buffer is a floating preview
+
+==============================================================================
+ 5. PREVENT ACTIONS                                  *float-preview-prevent-actions*
+
+Prevent null-ls to attach to buffer. >
+    require("null-ls").setup({
+        should_attach = function(bufnr)
+            return not require("float-preview").is_float(bufnr)
+        end,
+    })
+<
+
+Prevent lsp to attach to buffer. Must modify try_add after setup lsp server. Not working if you open file >
+    local conf = require("lspconfig")["pylsp"]
+    conf.setup({})
+
+    local try_add = conf.manager.try_add
+    conf.manager.try_add = function(bufnr, project_root)
+        if require("float-preview").is_float(bufnr) then
+            return
+        end
+        if require("float-preview").is_float(bufnr, vim.fn.bufname(bufnr)) then
+            return
+        end
+        return try_add(bufnr, project_root)
+    end
+<
+
+vim:tw=78:ts=4:sw=4:et:ft=help:norl:
