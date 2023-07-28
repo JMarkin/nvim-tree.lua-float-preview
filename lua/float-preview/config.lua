@@ -14,7 +14,11 @@ local CFG = {
     hooks = {
       pre_open = function(path)
         -- if file > 5 MB not preview
-        return require("float-preview.utils").get_size(path) < 5
+        local size = require("float-preview.utils").get_size(path)
+        if type(size) ~= "number" then
+          return false
+        end
+        return size < 5
       end,
       post_open = function(bufnr)
         return true
