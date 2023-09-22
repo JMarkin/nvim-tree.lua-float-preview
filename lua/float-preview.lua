@@ -186,6 +186,7 @@ function FloatPreview:preview(path)
       local has_ts, _ = pcall(vim.treesitter.start, self.buf, has_lang and lang or ft)
       if not has_ts then
         vim.bo[self.buf].syntax = ft
+        vim.bo[self.buf].filetype = ft
       end
     end)
   )
