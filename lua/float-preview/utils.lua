@@ -9,6 +9,15 @@ M.get_size = function(path)
   return math.floor(0.5 + (stats.size / (1024 * 1024)))
 end
 
+M.is_text = function(path)
+  -- Determine if file is text. This is not 100% proof, but good enough.
+  -- Source: https://github.com/sharkdp/content_inspector
+  local fd = vim.loop.fs_open(path, "r", 1)
+  local is_text = vim.loop.fs_read(fd, 1024):find "\0" == nil
+  vim.loop.fs_close(fd)
+  return is_text
+end
+
 M.detach_lsp_clients = function(bufnr)
   -- currently not working
   bufnr = bufnr or vim.api.nvim_get_current_buf()

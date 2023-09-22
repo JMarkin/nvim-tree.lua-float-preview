@@ -31,29 +31,55 @@ with defaults: >
   require("float-preview").setup({
         -- lines for scroll
         scroll_lines = 20,
+        -- window config
+        window = {
+          style = "minimal",
+          relative = "win",
+          border = "rounded",
+        },
         mapping = {
-            -- scroll down float buffer
-            down = { "<C-d>" },
-            -- scroll up float buffer
-            up = { "<C-e>", "<C-u>" },
-            -- enable/disable float windows
-            toggle = {"<C-x>"}
+          -- scroll down float buffer
+          down = { "<C-d>" },
+          -- scroll up float buffer
+          up = { "<C-e>", "<C-u>" },
+          -- enable/disable float windows
+          toggle = { "<C-x>" },
         },
         -- hooks if return false preview doesn't shown
         hooks = {
           pre_open = function(path)
-            -- if file > 5 MB not preview
-            return require("float-preview.utils").get_buf_size(path) < 5
+            -- if file > 5 MB or not text -> not preview
+            local size = require("float-preview.utils").get_size(path)
+            if type(size) ~= "number" then
+              return false
+            end
+            local is_text = require("float-preview.utils").is_text(path)
+            return size < 5 and is_text
           end,
           post_open = function(bufnr)
             return true
           end,
         },
+      },
     })
 <
 *float-preview.scroll_lines*
 Maximum number of lines the preview window will scroll vertically.
 Type: `number`, Default: `20`
+
+*float-preview.window*
+Float window options
+
+  *float-preview.window.style*
+  Style of window
+  Type: `string`, Default: `minimal`
+
+  *float-preview.relative*
+  Type: `string`, Default: `win`
+
+  *float-preview.border*
+  Type: `string`, Default: `rounded`
+
 
 *float-preview.mapping*
 Mapping for manipulate float window if focus on nvim-tree.
@@ -77,8 +103,13 @@ Hooks for float window.
   Pre open hook. `path` argument.
   Type: `function`, Default: >
   function(path)
-    -- if file > 5 MB not preview
-    return require("float-preview.utils").get_size(path) < 5
+    -- if file > 5 MB or not text -> not preview
+    local size = require("float-preview.utils").get_size(path)
+    if type(size) ~= "number" then
+      return false
+    end
+    local is_text = require("float-preview.utils").is_text(path)
+    return size < 5 and is_text
   end
 <
 
@@ -151,31 +182,5 @@ is_float({bufnr})                                *float-preview-api.is_float()*
     Return: ~
       (boolean) buffer is a floating preview
 
-==============================================================================
- 5. PREVENT ACTIONS                                  *float-preview-prevent-actions*
-
-Prevent null-ls to attach to buffer. >
-    require("null-ls").setup({
-        should_attach = function(bufnr)
-            return not require("float-preview").is_float(bufnr)
-        end,
-    })
-<
-
-Prevent lsp to attach to buffer. Must modify try_add after setup lsp server. Not working if you open file >
-    local conf = require("lspconfig")["pylsp"]
-    conf.setup({})
-
-    local try_add = conf.manager.try_add
-    conf.manager.try_add = function(bufnr, project_root)
-        if require("float-preview").is_float(bufnr) then
-            return
-        end
-        if require("float-preview").is_float(bufnr, vim.fn.bufname(bufnr)) then
-            return
-        end
-        return try_add(bufnr, project_root)
-    end
-<
 
 vim:tw=78:ts=4:sw=4:et:ft=help:norl:

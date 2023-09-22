@@ -2,6 +2,12 @@ local CFG = {
   _cfg = {
     -- lines for scroll
     scroll_lines = 20,
+    -- window config
+    window = {
+      style = "minimal",
+      relative = "win",
+      border = "rounded",
+    },
     mapping = {
       -- scroll down float buffer
       down = { "<C-d>" },
@@ -13,12 +19,13 @@ local CFG = {
     -- hooks if return false preview doesn't shown
     hooks = {
       pre_open = function(path)
-        -- if file > 5 MB not preview
+        -- if file > 5 MB or not text -> not preview
         local size = require("float-preview.utils").get_size(path)
         if type(size) ~= "number" then
           return false
         end
-        return size < 5
+        local is_text = require("float-preview.utils").is_text(path)
+        return size < 5 and is_text
       end,
       post_open = function(bufnr)
         return true
@@ -36,9 +43,7 @@ CFG.update = function(cfg)
     return
   end
 
-  for key, value in pairs(cfg) do
-    CFG._cfg[key] = value
-  end
+  CFG._cfg = vim.tbl_extend("force", CFG._cfg, cfg)
 end
 
 return CFG
