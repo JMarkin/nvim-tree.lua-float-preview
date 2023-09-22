@@ -11,6 +11,33 @@ local st = {}
 local all_floats = {}
 local disabled = false
 
+-- orignal fzf lua
+local read_file_async = function(filepath, callback)
+  vim.loop.fs_open(filepath, "r", 438, function(err_open, fd)
+    if err_open then
+      -- we must schedule this or we get
+      -- E5560: nvim_exec must not be called in a lua loop callback
+      vim.schedule(function()
+        vim.notify(("Unable to open file '%s', error: %s"):format(filepath, err_open), vim.log.levels.WARN)
+      end)
+      return
+    end
+    vim.loop.fs_fstat(fd, function(err_fstat, stat)
+      assert(not err_fstat, err_fstat)
+      if stat.type ~= "file" then
+        return callback ""
+      end
+      vim.loop.fs_read(fd, stat.size, 0, function(err_read, data)
+        assert(not err_read, err_read)
+        vim.loop.fs_close(fd, function(err_close)
+          assert(not err_close, err_close)
+          return callback(data)
+        end)
+      end)
+    end)
+  end)
+end
+
 function FloatPreview.is_float(bufnr, path)
   if path then
     return st[path] ~= nil
@@ -88,11 +115,8 @@ function FloatPreview:close(reason)
     if reason then
       -- vim.notify(string.format("close rason %s", reason))
     end
-    local save_ei = vim.o.eventignore
-    vim.o.eventignore = "all"
     pcall(vim.api.nvim_win_close, self.win, { force = true })
     pcall(vim.api.nvim_buf_delete, self.buf, { force = true })
-    vim.o.eventignore = save_ei
     self.win = nil
     st[self.buf] = nil
     st[self.path] = nil
@@ -125,49 +149,42 @@ function FloatPreview:preview(path)
   o.buftype = "nowrite"
   o.updatetime = 300
 
-  vim.api.nvim_buf_set_option(self.buf, "bufhidden", "wipe")
-  vim.api.nvim_buf_set_option(self.buf, "readonly", true)
-
   local width = vim.api.nvim_get_option "columns"
   local height = vim.api.nvim_get_option "lines"
   local prev_height = math.ceil(height / 2)
   local opts = {
-    -- TODO: add minimal variant
-    -- style = "minimal",
-    relative = "win",
     width = math.ceil(width / 2),
     height = prev_height,
     row = vim.fn.line ".",
     col = vim.fn.winwidth(0) + 1,
-    border = "rounded",
     focusable = false,
     noautocmd = true,
   }
+  opts = vim.tbl_extend("force", opts, self.cfg.window)
 
   self.win = vim.api.nvim_open_win(self.buf, true, opts)
 
-  local save_ei = vim.o.eventignore
-  vim.o.eventignore = "all"
-  vim.o.swapfile = false
-  local mess = vim.o.shortmess
-  vim.o.shortmess = "AF"
-  local cmd = string.format("edit %s", vim.fn.fnameescape(self.path))
-  local ok, _ = pcall(vim.api.nvim_command, cmd)
-  vim.o.swapfile = true
-  vim.o.shortmess = mess
-  vim.o.eventignore = save_ei
-  if not ok then
-    self:close "cant edit"
-    return
-  end
-  self.max_line = vim.fn.line "$"
-  local out
-  ok, out = pcall(vim.filetype.match, { buf = self.buf, filename = self.path })
-  if ok and out then
-    cmd = string.format("set filetype=%s", out)
-    pcall(vim.api.nvim_command, cmd)
-  end
-  vim.api.nvim_set_option_value("winhl", "NormalFloat:Normal,FloatBorder:none", { win = self.win })
+  read_file_async(
+    path,
+    vim.schedule_wrap(function(data)
+      local lines = vim.split(data, "[\r]?\n")
+
+      -- if file ends in new line, don't write an empty string as the last
+      -- line.
+      if data:sub(#data, #data) == "\n" or data:sub(#data - 1, #data) == "\r\n" then
+        table.remove(lines)
+      end
+      self.max_line = #lines
+      vim.api.nvim_buf_set_lines(self.buf, 0, -1, false, lines)
+
+      local ft = vim.filetype.match { buf = self.buf, filename = path }
+      local has_lang, lang = pcall(vim.treesitter.language.get_lang, ft)
+      local has_ts, _ = pcall(vim.treesitter.start, self.buf, has_lang and lang or ft)
+      if not has_ts then
+        vim.bo[self.buf].syntax = ft
+      end
+    end)
+  )
   if not self.cfg.hooks.post_open(self.buf) then
     self:close "post open"
   end
