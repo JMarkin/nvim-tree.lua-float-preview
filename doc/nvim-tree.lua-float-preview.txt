@@ -80,6 +80,10 @@ Float window options
   *float-preview.border*
   Type: `string`, Default: `rounded`
 
+  *float-preview.wrap*
+  wrap lines inside window
+  Type: `boolean`, Default: `false`
+
 
 *float-preview.mapping*
 Mapping for manipulate float window if focus on nvim-tree.

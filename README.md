@@ -25,6 +25,7 @@ Example
                   style = "minimal",
                   relative = "win",
                   border = "rounded",
+                  wrap = false,
                 },
                 mapping = {
                   -- scroll down float buffer
@@ -80,4 +81,3 @@ local function on_attach(bufnr)
     vim.keymap.set("n", "r", float_close_wrap(api.fs.rename), opts("Rename"))
 end
 ```
-
