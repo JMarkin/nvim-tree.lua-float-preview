@@ -1,10 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/sumneko/vscode-lua/master/setting/schema.json",
-  "runtime.version" : "Lua 5.1",
+  "runtime.version": "Lua 5.1",
   "diagnostics": {
-    "globals": [
-      "vim"
-    ],
+    "globals": ["vim"],
     "neededFileStatus": {
       "ambiguity-1": "Any",
       "assign-type-mismatch": "Any",
@@ -61,6 +59,6 @@
       "unused-local": "Any",
       "unused-vararg": "Any"
     }
-  }
+  },
+  "workspace.checkThirdParty": false
 }
-

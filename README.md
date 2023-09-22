@@ -5,8 +5,10 @@ Example
 ![ezgif-5-8835f4da8d](https://github.com/JMarkin/nvim-tree.lua-float-preview/assets/15740814/e33aef5e-f647-435f-bb23-cee297011757)
 
 ## How to add
+
 1. Install plugin
-lazy example
+   lazy example
+
 ```lua
 {
     "nvim-tree/nvim-tree.lua",
@@ -14,33 +16,48 @@ lazy example
         {
             "JMarkin/nvim-tree.lua-float-preview",
             lazy = true,
+            -- default
             opts = {
                 -- lines for scroll
                 scroll_lines = 20,
-                mapping = {
-                    -- scroll down float buffer
-                    down = { "<C-d>" },
-                    -- scroll up float buffer
-                    up = { "<C-e>", "<C-u>" },
-                    -- enable/disable float windows
-                    toggle = {"<C-x>"},
-                    -- hooks if return false preview doesn't shown
-                    hooks = {
-                      pre_open = function(path)
-                        -- if file > 5 MB not preview
-                        return require("float-preview.utils").get_buf_size(path) < 5
-                      end,
-                      post_open = function(bufnr)
-                        return true
-                      end,
-                    },
+                -- window config
+                window = {
+                  style = "minimal",
+                  relative = "win",
+                  border = "rounded",
+                  wrap = false,
                 },
-            },
+                mapping = {
+                  -- scroll down float buffer
+                  down = { "<C-d>" },
+                  -- scroll up float buffer
+                  up = { "<C-e>", "<C-u>" },
+                  -- enable/disable float windows
+                  toggle = { "<C-x>" },
+                },
+                -- hooks if return false preview doesn't shown
+                hooks = {
+                  pre_open = function(path)
+                    -- if file > 5 MB or not text -> not preview
+                    local size = require("float-preview.utils").get_size(path)
+                    if type(size) ~= "number" then
+                      return false
+                    end
+                    local is_text = require("float-preview.utils").is_text(path)
+                    return size < 5 and is_text
+                  end,
+                  post_open = function(bufnr)
+                    return true
+                  end,
+                },
+              },
         },
     },
 
 ```
-2. In nvim-tree.lua on_attach function, attach float-preview and wrap some keymaps
+
+2. In nvim-tree.lua on_attach function, attach float-preview and wrap some keymaps for hide window on keymap
+
 ```lua
 local function on_attach(bufnr)
     local api = require("nvim-tree.api")
@@ -63,15 +80,4 @@ local function on_attach(bufnr)
     vim.keymap.set("n", "d", float_close_wrap(api.fs.remove), opts("Delete"))
     vim.keymap.set("n", "r", float_close_wrap(api.fs.rename), opts("Rename"))
 end
-```
-
----
-
-If you want disable diagnostic, and other in preview buffer. You can use `require("float-preview").is_float`, example for null-ls
-```lua
-require("null-ls").setup({
-    should_attach = function(bufnr)
-        return not require("float-preview").is_float(bufnr)
-    end,
-})
 ```
