@@ -31,4 +31,15 @@ M.detach_lsp_clients = function(bufnr)
   vim.notify = prev
 end
 
+M.is_showed = function(path)
+  for _, winnr in ipairs(vim.api.nvim_tabpage_list_wins(vim.api.nvim_get_current_tabpage())) do
+    local buf = vim.api.nvim_win_get_buf(winnr)
+    local _path = vim.api.nvim_buf_get_name(buf)
+    if _path == path then
+      return true
+    end
+  end
+  return false
+end
+
 return M
