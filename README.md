@@ -1,8 +1,8 @@
 # Float Preview for nvim-tree.lua
 
-Example
+Example  
+![ezgif com-video-to-gif](https://github.com/JMarkin/nvim-tree.lua-float-preview/assets/15740814/cc2ba591-131b-42e0-afc8-1bac97b1e72a)
 
-![ezgif-5-8835f4da8d](https://github.com/JMarkin/nvim-tree.lua-float-preview/assets/15740814/e33aef5e-f647-435f-bb23-cee297011757)
 
 ## How to add
 
