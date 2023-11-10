@@ -146,11 +146,6 @@ function FloatPreview:preview(path)
   vim.api.nvim_set_option_value("buftype", "nowrite", { buf = self.buf })
   vim.api.nvim_set_option_value("buflisted", false, { buf = self.buf })
 
-  local cfg_window = self.cfg.window
-  if type(cfg_window) == "function" then
-    cfg_window = cfg_window()
-  end
-
   local width = vim.api.nvim_get_option "columns"
   local height = vim.api.nvim_get_option "lines"
   local prev_height = math.ceil(height / 2)
@@ -161,14 +156,24 @@ function FloatPreview:preview(path)
     col = vim.fn.winwidth(0) + 1,
     focusable = false,
     noautocmd = true,
+    style = self.cfg.window.style,
+    relative = self.cfg.window.relative,
+    border = self.cfg.window.border,
   }
 
-  for k, v in pairs(cfg_window) do
-    opts[k] = v
+  local open_win_config = self.cfg.window.open_win_config
+  if type(open_win_config) == "function" then
+    open_win_config = open_win_config()
+  end
+
+  if open_win_config then
+    for k, v in pairs(open_win_config) do
+      opts[k] = v
+    end
   end
 
   self.win = vim.api.nvim_open_win(self.buf, true, opts)
-  vim.api.nvim_set_option_value("wrap", cfg_window.wrap, { win = self.win })
+  vim.api.nvim_set_option_value("wrap", self.cfg.window.wrap, { win = self.win })
 
   read_file_async(
     path,
@@ -181,10 +186,12 @@ function FloatPreview:preview(path)
         table.remove(lines)
       end
       self.max_line = #lines
-      if self.max_line < prev_height then
-        opts.height = self.max_line + 1
-        opts.noautocmd = nil
-        vim.api.nvim_win_set_config(self.win, opts)
+      if self.cfg.window.trim_height then
+        if self.max_line < prev_height then
+          opts.height = self.max_line + 1
+          opts.noautocmd = nil
+          vim.api.nvim_win_set_config(self.win, opts)
+        end
       end
       vim.api.nvim_buf_set_lines(self.buf, 0, -1, false, lines)
 
