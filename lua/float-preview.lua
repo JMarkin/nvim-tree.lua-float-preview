@@ -146,6 +146,11 @@ function FloatPreview:preview(path)
   vim.api.nvim_set_option_value("buftype", "nowrite", { buf = self.buf })
   vim.api.nvim_set_option_value("buflisted", false, { buf = self.buf })
 
+  local cfg_window = self.cfg.window
+  if type(cfg_window) == "function" then
+    cfg_window = cfg_window()
+  end
+
   local width = vim.api.nvim_get_option "columns"
   local height = vim.api.nvim_get_option "lines"
   local prev_height = math.ceil(height / 2)
@@ -156,10 +161,12 @@ function FloatPreview:preview(path)
     col = vim.fn.winwidth(0) + 1,
     focusable = false,
     noautocmd = true,
-    style = self.cfg.window.style,
-    relative = self.cfg.window.relative,
-    border = self.cfg.window.border,
   }
+
+  for k, v in pairs(cfg_window) do
+    opts[k] = v
+  end
+
   self.win = vim.api.nvim_open_win(self.buf, true, opts)
   vim.api.nvim_set_option_value("wrap", self.cfg.window.wrap, { win = self.win })
 
