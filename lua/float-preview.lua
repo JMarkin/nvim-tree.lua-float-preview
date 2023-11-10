@@ -168,7 +168,7 @@ function FloatPreview:preview(path)
   end
 
   self.win = vim.api.nvim_open_win(self.buf, true, opts)
-  vim.api.nvim_set_option_value("wrap", self.cfg.window.wrap, { win = self.win })
+  vim.api.nvim_set_option_value("wrap", cfg_window.wrap, { win = self.win })
 
   read_file_async(
     path,
