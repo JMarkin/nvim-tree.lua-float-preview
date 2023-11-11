@@ -74,7 +74,7 @@ Float window options
   Style of window
   Type: `string`, Default: `minimal`
 
-  *float-preview.window..relative*
+  *float-preview.window.relative*
   Type: `string`, Default: `win`
 
   *float-preview.window.border*
