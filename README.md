@@ -81,3 +81,37 @@ local function on_attach(bufnr)
     vim.keymap.set("n", "r", float_close_wrap(api.fs.rename), opts("Rename"))
 end
 ```
+
+## Configure Window Size
+
+You can augment the window config by adding arguments to be passed to `nvim_open_win` by providing a `window.open_win_config`. This can be either a table or a function that returns a table.
+
+```lua
+require('float-preview').setup({
+    window =  {
+        wrap = false,
+        trim_height = false,
+        open_win_config = function()
+            local screen_w = vim.opt.columns:get()
+            local screen_h = vim.opt.lines:get() - vim.opt.cmdheight:get()
+            local window_w_f = (screen_w - WIDTH_PADDING * 2 -1) / 2
+            local window_w = math.floor(window_w_f)
+            local window_h = screen_h - HEIGHT_PADDING * 2
+            local center_x = window_w_f + WIDTH_PADDING + 2
+            local center_y = ((vim.opt.lines:get() - window_h) / 2) - vim.opt.cmdheight:get()
+
+            return {
+                style = "minimal",
+                relative = "editor",
+                border = "single",
+                row = center_y,
+                col = center_x,
+                width = window_w,
+                height = window_h
+            }
+        end
+    }
+})
+
+```
+
