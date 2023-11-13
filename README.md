@@ -87,6 +87,8 @@ end
 You can augment the window config by adding arguments to be passed to `nvim_open_win` by providing a `window.open_win_config`. This can be either a table or a function that returns a table.
 
 ```lua
+HEIGHT_PADDING = 10
+WIDTH_PADDING = 15
 require('float-preview').setup({
     window =  {
         wrap = false,
@@ -114,4 +116,6 @@ require('float-preview').setup({
 })
 
 ```
+
+<img src="https://github.com/haondt/nvim-tree.lua-float-preview/assets/19233365/f71aede5-068b-4a13-b3ca-bd373de40ff6" width="800">
 
