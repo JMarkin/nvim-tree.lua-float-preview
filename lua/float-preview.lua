@@ -1,6 +1,10 @@
 local CFG = require "float-preview.config"
 
-local get_node = require("nvim-tree.api").tree.get_node_under_cursor
+local api = require "nvim-tree.api"
+local Event = api.events.Event
+
+local get_node = api.tree.get_node_under_cursor
+
 local FloatPreview = {}
 FloatPreview.__index = FloatPreview
 
@@ -51,9 +55,11 @@ end
 
 local function all_close()
   for _, fl in pairs(all_floats) do
-    fl:close()
+    fl:_close()
   end
 end
+
+FloatPreview.close = all_close
 
 local function all_open()
   for _, fl in pairs(all_floats) do
@@ -102,7 +108,7 @@ function FloatPreview:new(cfg)
 
   local function action_wrap(f)
     return function(...)
-      prev:close()
+      prev:_close()
       return f(...)
     end
   end
@@ -110,10 +116,10 @@ function FloatPreview:new(cfg)
   return prev, action_wrap
 end
 
-function FloatPreview:close(reason)
+function FloatPreview:_close(reason)
   if self.path ~= nil and self.buf ~= nil then
     if reason then
-      -- vim.notify(string.format("close rason %s", reason))
+      -- vim.notify(string.format("fp close %s", reason))
     end
     pcall(vim.api.nvim_win_close, self.win, { force = true })
     pcall(vim.api.nvim_buf_delete, self.buf, { force = true })
@@ -143,11 +149,11 @@ function FloatPreview:preview(path)
   st[self.buf] = 1
 
   vim.api.nvim_set_option_value("bufhidden", "wipe", { buf = self.buf })
-  vim.api.nvim_set_option_value("buftype", "nowrite", { buf = self.buf })
+  vim.api.nvim_set_option_value("buftype", "nofile", { buf = self.buf })
   vim.api.nvim_set_option_value("buflisted", false, { buf = self.buf })
 
-  local width = vim.api.nvim_get_option "columns"
-  local height = vim.api.nvim_get_option "lines"
+  local width = vim.api.nvim_get_option_value("columns", {})
+  local height = vim.api.nvim_get_option_value("lines", {})
   local prev_height = math.ceil(height / 2)
   local opts = {
     width = math.ceil(width / 2),
@@ -186,12 +192,12 @@ function FloatPreview:preview(path)
       local has_ts, _ = pcall(vim.treesitter.start, self.buf, has_lang and lang or ft)
       if not has_ts then
         vim.bo[self.buf].syntax = ft
-        vim.bo[self.buf].filetype = ft
+        vim.bo[self.buf].ft = ft
       end
     end)
   )
   if not self.cfg.hooks.post_open(self.buf) then
-    self:close "post open"
+    self:_close "post open"
   end
 end
 
@@ -204,7 +210,7 @@ function FloatPreview:preview_under_cursor()
   if node.absolute_path == self.path then
     return
   end
-  self:close "change file"
+  self:_close "change file"
 
   if node.type ~= "file" then
     return
@@ -215,7 +221,7 @@ function FloatPreview:preview_under_cursor()
 
   local ok, _ = pcall(vim.api.nvim_set_current_win, win)
   if not ok then
-    self:close "cant set win"
+    self:_close "cant set win"
   end
 end
 
@@ -270,7 +276,7 @@ function FloatPreview:attach(bufnr)
         if bufnr == vim.api.nvim_get_current_buf() then
           self:preview_under_cursor()
         else
-          self:close "changed buffer"
+          self:_close "changed buffer"
         end
       end,
     })
@@ -280,7 +286,7 @@ function FloatPreview:attach(bufnr)
     buffer = bufnr,
     group = preview_au,
     callback = function()
-      self:close "wipe"
+      self:_close "wipe"
       all_floats[bufnr] = nil
       for _, au_id in pairs(au) do
         vim.api.nvim_del_autocmd(au_id)
@@ -288,6 +294,17 @@ function FloatPreview:attach(bufnr)
       self = nil
     end,
   })
+
+  local events = { Event.TreeClose, Event.WillRenameNode, Event.WillCreateFile, Event.WillRemoveFile }
+
+  for _, ev in pairs(events) do
+    api.events.subscribe(ev, function(...)
+      if not self then
+        return
+      end
+      self:_close("nvim open " .. ev)
+    end)
+  end
 
   all_floats[bufnr] = self
 end
