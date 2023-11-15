@@ -74,16 +74,24 @@ Float window options
   Style of window
   Type: `string`, Default: `minimal`
 
-  *float-preview.relative*
+  *float-preview.window.relative*
   Type: `string`, Default: `win`
 
-  *float-preview.border*
+  *float-preview.window.border*
   Type: `string`, Default: `rounded`
 
-  *float-preview.wrap*
+  *float-preview.window.wrap*
   wrap lines inside window
   Type: `boolean`, Default: `false`
 
+  *float-preview.window.trim_height*
+  trim window height when file has fewer lines than configured window height
+  Type: `boolean`, Default: `true`
+
+  *float-preview.window.open_win_config*
+  Additional floating window config. See |nvim_open_win| for more details.
+  Type: `table | function` returning a table
+  Default: `nil`
 
 *float-preview.mapping*
 Mapping for manipulate float window if focus on nvim-tree.

@@ -8,6 +8,7 @@ local CFG = {
       relative = "win",
       border = "rounded",
       wrap = false,
+      trim_height = true,
     },
     mapping = {
       -- scroll down float buffer
