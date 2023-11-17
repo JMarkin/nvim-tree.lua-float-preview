@@ -69,6 +69,20 @@ end
 
 function FloatPreview.setup(cfg)
   CFG.update(cfg)
+
+  cfg = CFG.config()
+
+  if cfg.wrap_nvimtree_commands then
+    api.node.open.tab = FloatPreview.close_wrap(api.node.open.tab)
+    api.node.open.vertical = FloatPreview.close_wrap(api.node.open.vertical)
+    api.node.open.horizontal = FloatPreview.close_wrap(api.node.open.horizontal)
+    api.node.open.edit = FloatPreview.close_wrap(api.node.open.edit)
+    api.node.open.preview = FloatPreview.close_wrap(api.node.open.preview)
+    api.node.open.no_window_picker = FloatPreview.close_wrap(api.node.open.no_window_picker)
+    api.fs.create = FloatPreview.close_wrap(api.fs.create)
+    api.fs.remove = FloatPreview.close_wrap(api.fs.remove)
+    api.fs.rename = FloatPreview.close_wrap(api.fs.rename)
+  end
 end
 
 function FloatPreview.attach_nvimtree(bufnr)
@@ -296,29 +310,17 @@ function FloatPreview:attach(bufnr)
     })
   )
 
-  vim.api.nvim_create_autocmd({ "BufWipeout" }, {
-    buffer = bufnr,
-    group = preview_au,
-    callback = function()
-      self:_close "wipe"
-      all_floats[bufnr] = nil
-      for _, au_id in pairs(au) do
-        vim.api.nvim_del_autocmd(au_id)
-      end
-      self = nil
-    end,
-  })
-
-  local events = { Event.TreeClose, Event.WillRenameNode, Event.WillCreateFile, Event.WillRemoveFile }
-
-  for _, ev in pairs(events) do
-    api.events.subscribe(ev, function(...)
-      if not self then
-        return
-      end
-      self:_close("nvim open " .. ev)
-    end)
-  end
+  api.events.subscribe(Event.TreeClose, function(opts)
+    if not self then
+      return
+    end
+    all_floats[bufnr] = nil
+    for _, au_id in pairs(au) do
+      vim.api.nvim_del_autocmd(au_id)
+    end
+    self:_close "nvim close"
+    self = nil
+  end)
 
   all_floats[bufnr] = self
 end

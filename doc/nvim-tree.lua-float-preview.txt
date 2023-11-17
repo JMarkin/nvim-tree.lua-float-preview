@@ -62,6 +62,46 @@ with defaults: >
         },
       },
     })
+
+
+*float-preview.wrap_nvimtree_commands*
+Wrap nvimtree commands.
+By default we wrap there are api funcs for close float window before execute:
+- api.node.open.tab
+- api.node.open.vertical
+- api.node.open.horizontal
+- api.node.open.edit
+- api.node.open.preview
+- api.node.open.no_window_picker
+- api.fs.create
+- api.fs.remove
+- api.fs.rename
+
+You can manually wrap this in on attach function like
+
+local function on_attach(bufnr)
+    local api = require("nvim-tree.api")
+    local FloatPreview = require("float-preview")
+
+    FloatPreview.attach_nvimtree(bufnr)
+    local close_wrap = FloatPreview.close_wrap
+
+    --- There are keymaps must to wrap for correct work
+    -- ...
+    vim.keymap.set("n", "<C-t>", close_wrap(api.node.open.tab), opts("Open: New Tab"))
+    vim.keymap.set("n", "<C-v>", close_wrap(api.node.open.vertical), opts("Open: Vertical Split"))
+    vim.keymap.set("n", "<C-s>", close_wrap(api.node.open.horizontal), opts("Open: Horizontal Split"))
+    vim.keymap.set("n", "<CR>", close_wrap(api.node.open.edit), opts("Open"))
+    vim.keymap.set("n", "<Tab>", close_wrap(api.node.open.preview), opts("Open"))
+    vim.keymap.set("n", "o", close_wrap(api.node.open.edit), opts("Open"))
+    vim.keymap.set("n", "O", close_wrap(api.node.open.no_window_picker), opts("Open: No Window Picker"))
+    vim.keymap.set("n", "a", close_wrap(api.fs.create), opts("Create"))
+    vim.keymap.set("n", "d", close_wrap(api.fs.remove), opts("Delete"))
+    vim.keymap.set("n", "r", close_wrap(api.fs.rename), opts("Rename"))
+end
+
+
+Type: `boolean`, Default: `true`
 <
 *float-preview.scroll_lines*
 Maximum number of lines the preview window will scroll vertically.
