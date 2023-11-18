@@ -65,7 +65,8 @@ local function on_attach(bufnr)
     local FloatPreview = require("float-preview")
 
     FloatPreview.attach_nvimtree(bufnr)
-    local close_wrap = FloatPreview.close_wrap
+
+    ...
 end
 ```
 
