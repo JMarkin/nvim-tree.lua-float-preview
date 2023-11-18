@@ -1,5 +1,7 @@
 local CFG = {
   _cfg = {
+    -- wrap nvimtree commands
+    wrap_nvimtree_commands = true,
     -- lines for scroll
     scroll_lines = 20,
     -- window config
