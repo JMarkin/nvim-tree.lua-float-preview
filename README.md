@@ -6,7 +6,7 @@ Example
 ## How to add
 
 1. Install plugin
-   lazy example
+   lazy.nvim example
 
 ```lua
 {
