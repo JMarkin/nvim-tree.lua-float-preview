@@ -29,6 +29,8 @@ Additional setup calls may be made to update the configuration. See example
 with defaults: >
 
   require("float-preview").setup({
+        -- Whether the float preview is enabled by default. When set to false, it has to be "toggled" on.
+        toggled_on = true,
         -- lines for scroll
         scroll_lines = 20,
         -- window config
@@ -103,6 +105,10 @@ end
 
 Type: `boolean`, Default: `true`
 <
+*float-preview.toggled_on*
+Whether the float preview is enabled by default. When set to false, it has to be "toggled" on.
+Type: `boolean`, Default: `true`
+
 *float-preview.scroll_lines*
 Maximum number of lines the preview window will scroll vertically.
 Type: `number`, Default: `20`
