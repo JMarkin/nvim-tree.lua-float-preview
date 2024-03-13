@@ -1,5 +1,7 @@
 local CFG = {
   _cfg = {
+    -- Whether the float preview is enabled by default. When set to false, it has to be "toggled" on.
+    toggled_on = true,
     -- wrap nvimtree commands
     wrap_nvimtree_commands = true,
     -- lines for scroll

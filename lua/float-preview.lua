@@ -72,6 +72,8 @@ function FloatPreview.setup(cfg)
 
   cfg = CFG.config()
 
+  disabled = not cfg.toggled_on
+
   if cfg.wrap_nvimtree_commands then
     api.node.open.tab = FloatPreview.close_wrap(api.node.open.tab)
     api.node.open.vertical = FloatPreview.close_wrap(api.node.open.vertical)
