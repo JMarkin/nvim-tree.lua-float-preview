@@ -218,11 +218,14 @@ function FloatPreview:preview(path)
       vim.api.nvim_buf_set_lines(self.buf, 0, -1, false, lines)
 
       local ft = vim.filetype.match { buf = self.buf, filename = path }
+      vim.bo[self.buf].ft = ft
+
       local has_lang, lang = pcall(vim.treesitter.language.get_lang, ft)
       local has_ts, _ = pcall(vim.treesitter.start, self.buf, has_lang and lang or ft)
-      if not has_ts then
+      local syntax_ = vim.g.syntax_on or vim.g.syntax_manual
+
+      if not has_ts and syntax_ then
         vim.bo[self.buf].syntax = ft
-        vim.bo[self.buf].ft = ft
       end
     end)
   )

@@ -60,5 +60,11 @@
       "unused-vararg": "Any"
     }
   },
-  "workspace.checkThirdParty": false
+  "workspace.checkThirdParty": "Disable",
+    "workspace.library": [
+        "/home/kron/.local/share/nvim/lazy/neodev.nvim/types/nightly",
+        "/home/kron/.local/share/bob/nightly-SVMd8w7v/nvim-linux64/share/nvim/runtime/lua",
+        "/Users/kron/projects/nvim-tree.lua-float-preview/lua",
+        "${3rd}/luv/library"
+    ]
 }

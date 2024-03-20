@@ -13,6 +13,9 @@ M.is_text = function(path)
   -- Determine if file is text. This is not 100% proof, but good enough.
   -- Source: https://github.com/sharkdp/content_inspector
   local fd = vim.loop.fs_open(path, "r", 1)
+  if not fd then
+    return false
+  end
   local is_text = vim.loop.fs_read(fd, 1024):find "\0" == nil
   vim.loop.fs_close(fd)
   return is_text
