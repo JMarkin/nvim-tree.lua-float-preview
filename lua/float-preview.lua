@@ -96,7 +96,10 @@ end
 function FloatPreview.close_wrap(f)
   return function(...)
     all_close()
-    return f(...)
+    local args = ...
+    return vim.schedule(function()
+      f(args)
+    end)
   end
 end
 
@@ -200,6 +203,9 @@ function FloatPreview:preview(path)
   read_file_async(
     path,
     vim.schedule_wrap(function(data)
+      if not self.buf then
+        return
+      end
       local lines = vim.split(data, "[\r]?\n")
 
       -- if file ends in new line, don't write an empty string as the last
