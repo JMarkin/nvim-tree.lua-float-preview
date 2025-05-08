@@ -67,6 +67,17 @@ local function all_open()
   end
 end
 
+local function toggle_or_preview()
+  local node = api.tree.get_node_under_cursor()
+  if not node then
+    return
+  end
+
+  if node.type ~= "file" then
+    api.node.open.edit() -- Toggle folder
+  end
+end
+
 function FloatPreview.setup(cfg)
   CFG.update(cfg)
 
@@ -75,11 +86,11 @@ function FloatPreview.setup(cfg)
   disabled = not cfg.toggled_on
 
   if cfg.wrap_nvimtree_commands then
+    api.node.open.preview = toggle_or_preview -- disable the
     api.node.open.tab = FloatPreview.close_wrap(api.node.open.tab)
     api.node.open.vertical = FloatPreview.close_wrap(api.node.open.vertical)
     api.node.open.horizontal = FloatPreview.close_wrap(api.node.open.horizontal)
     api.node.open.edit = FloatPreview.close_wrap(api.node.open.edit)
-    api.node.open.preview = FloatPreview.close_wrap(api.node.open.preview)
     api.node.open.no_window_picker = FloatPreview.close_wrap(api.node.open.no_window_picker)
     api.fs.create = FloatPreview.close_wrap(api.fs.create)
     api.fs.remove = FloatPreview.close_wrap(api.fs.remove)
@@ -137,9 +148,6 @@ end
 
 function FloatPreview:_close(reason)
   if self.path ~= nil and self.buf ~= nil then
-    if reason then
-      -- vim.notify(string.format("fp close %s", reason))
-    end
     pcall(vim.api.nvim_win_close, self.win, { force = true })
     pcall(vim.api.nvim_buf_delete, self.buf, { force = true })
     self.win = nil
@@ -246,11 +254,6 @@ function FloatPreview:preview_under_cursor()
     return
   end
 
-  if node.absolute_path == self.path then
-    return
-  end
-  self:_close "change file"
-
   if node.type ~= "file" then
     return
   end
@@ -287,6 +290,15 @@ function FloatPreview:scroll_up()
   end
 end
 
+function FloatPreview:close_preview()
+  local _, node = pcall(get_node)
+  if not node then
+    return
+  end
+
+  self:_close "cursor moved"
+end
+
 function FloatPreview:attach(bufnr)
   for _, key in ipairs(self.cfg.mapping.up) do
     vim.keymap.set("n", key, function()
@@ -305,18 +317,54 @@ function FloatPreview:attach(bufnr)
       FloatPreview.toggle()
     end, { buffer = bufnr })
   end
-  local au = {}
 
+  local toggle_preview = function()
+    local _, node = pcall(get_node)
+    if self.path ~= nil and self.path == node.absolute_path then
+      self.close_preview(self)
+      return
+    end
+
+    self:preview_under_cursor()
+  end
+  vim.api.nvim_create_user_command("TogglePreviewFile", toggle_preview, {})
+
+  local au = {}
+  table.insert(
+    au,
+    vim.api.nvim_create_autocmd("BufDelete", {
+      group = preview_au,
+      callback = function()
+        if vim.fn.exists ":TogglePreviewFile" > 0 then
+          vim.api.nvim_del_user_command "TogglePreviewFile"
+        end
+      end,
+    })
+  )
   table.insert(
     au,
     vim.api.nvim_create_autocmd({ "CursorHold" }, {
       group = preview_au,
       callback = function()
-        if bufnr == vim.api.nvim_get_current_buf() then
-          self:preview_under_cursor()
-        else
+        if self.cfg.auto_preview then
+          if bufnr == vim.api.nvim_get_current_buf() then
+            self:preview_under_cursor()
+            return
+          end
+
           self:_close "changed buffer"
+          return
         end
+      end,
+    })
+  )
+
+  table.insert(
+    au,
+    vim.api.nvim_create_autocmd({ "CursorMoved" }, {
+      group = preview_au,
+      callback = function()
+        self:close_preview()
       end,
     })
   )
